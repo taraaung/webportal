@@ -1,0 +1,50 @@
+<!--
+  ~ Copyright (c) 2015 - 2020 - Tara Aung Co., Ltd - All Rights Reserved.
+  ~  Tara Systems Project - Proprietary and confidential. www.taraaung.com
+  -->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>TARA System</title>
+    <script src="remote_home.js"></script>
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow-y: hidden;
+            flex-flow: column wrap;
+        }
+
+        #message {
+            margin-top: 20px;
+        }
+
+        #back_btn {
+            background: rgb(200, 219, 238);
+            color: black;
+            border-radius: 10px;
+            width: 100px;
+            height: 30px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="container">
+    <img src="tara_aung_company.png"></img>
+    <img id="loading_img" src="ajax-loader.gif"></img>
+    <div id="message">Accessing TARA Cloud server, please wait...</div>
+    <button class="btn" id="back_btn" onclick="javacript:history.back();">Back</button>
+    <script type="text/javascript">
+        init();
+    </script>
+</body>
+
+</html>
