@@ -44,7 +44,7 @@ function init() {
                             window.location.replace(serverPublicUrl + params);
                         }, function error(errorMsg) {
                             showErrorMessage("Sorry, server cannot be reached!", shopName, hostName, systemType);
-                        },true);
+                        });
                 }, function error(errorMsg) {
                     showErrorMessage("Sorry, client information cannot be fetched!", shopName, hostName, systemType);
                 });
@@ -89,8 +89,8 @@ getUrlParam = function (name) {
 };
 
 // javascript native network fetcher
-function httpGetAsync(theUrl, callback, errorCallback, noCors) {
-    var option = noCors?{mode:'no-cors'}:{};
+function httpGetAsync(theUrl, callback, errorCallback) {
+    var option = (theUrl.startsWith("http://"))?{mode:'no-cors'}:{};
     fetch(theUrl, option).then(function (response) {
         return response.json();
     }).then(function (obj) {
