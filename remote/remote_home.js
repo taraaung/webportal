@@ -90,8 +90,7 @@ getUrlParam = function (name) {
 
 // javascript native network fetcher
 function httpGetAsync(theUrl, callback, errorCallback) {
-    var option = (theUrl.startsWith("http://"))?{mode:'no-cors'}:{};
-    fetch(theUrl, option).then(function (response) {
+    fetch(theUrl).then(function (response) {
         return response.json();
     }).then(function (obj) {
         callback(obj);
