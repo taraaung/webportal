@@ -13,6 +13,8 @@ function init() {
     var shopName = getUrlParam("shop_name");
     var systemType = getUrlParam("system_type");
     var hostName = getUrlParam("host_name");
+    var resource = getUrlParam("resource_value");
+    var resource_url = "";
     if (!shopName) {
         showErrorMessage(
             "\"ShopName\" cannnot be empty.</br>" +
@@ -32,6 +34,9 @@ function init() {
             shopName, hostName, systemType);
         return;
     }
+    if (resource) {
+        resource_url = "/resources/" + resource;
+    }
     httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cloud_domain.json",
         function success(response) {
             var serverPublicUrl = response[systemType.toUpperCase()] + "/tarabar";
@@ -41,7 +46,7 @@ function init() {
                     params += "&icft=" + (response ? response.isClientFirstTime : "true");
                     httpGetAsync(serverPublicUrl + "/client_info",
                         function success(response) {
-                            window.location.replace(serverPublicUrl + params);
+                            window.location.replace(serverPublicUrl + resource_url + params);
                         }, function error(errorMsg) {
                             showErrorMessage("Sorry, server cannot be reached!", shopName, hostName, systemType);
                         });
