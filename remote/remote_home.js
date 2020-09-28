@@ -35,7 +35,7 @@ function init() {
         return;
     }
     if (resource) {
-        resource_url = "/resources/" + resource;
+        resource_url = "/resources/" + resource + "/index.html";
     }
     httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cloud_domain.json",
         function success(response) {
