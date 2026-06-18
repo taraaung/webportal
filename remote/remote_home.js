@@ -1,20 +1,33 @@
 /*
- * Copyright (c) 2015 - 2020 - Tara Aung Co., Ltd - All Rights Reserved.
+ * Copyright (c) 2015 - 2026 - Tara Aung Co., Ltd - All Rights Reserved.
  * Tara Systems Project - Proprietary and confidential. www.taraaung.com
  */
 
-/* global getUrlParam:writable */
-var loadingImg, infoMessage;
+/* global getUrlParam:writable getCloudDomainFromSupabase getCloudDomainFromAppwrite */
+let loadingImg, infoMessage;
+
+// eslint-disable-next-line no-unused-vars
+const shopNameColumn = "shop_name"
+// eslint-disable-next-line no-unused-vars
+const hostNameColumn = "host_name"
+// eslint-disable-next-line no-unused-vars
+const systemTypeColumn = "system_type"
+const cloudDomainColumn = "cloud_domain"
+const clientFirstTimeColumn = "is_client_first_time"
+const ERROR_MESSAGE = {
+    domain: "Sorry, server domain cannot be fetched!<br> VPN ဖွင့်ပြီး page ကို Reload လုပ်ပေးပါ။ <br>Please turn on VPN and Reload page.",
+    cookie: "Sorry, client information cannot be fetched!"
+};
 
 // eslint-disable-next-line no-unused-vars
 function init() {
     loadingImg = document.getElementById("loading_img");
     infoMessage = document.getElementById("message");
-    var shopName = getUrlParam("shop_name");
-    var systemType = getUrlParam("system_type");
-    var hostName = getUrlParam("host_name");
-    var resource = getUrlParam("resource_value");
-    var resource_url = "";
+    const shopName = getUrlParam("shop_name");
+    let systemType = getUrlParam("system_type");
+    const hostName = getUrlParam("host_name");
+    const resource = getUrlParam("resource_value");
+    let resourceUrl = "";
     if (!shopName) {
         showErrorMessage(
             "\"ShopName\" cannnot be empty.</br>" +
@@ -35,33 +48,29 @@ function init() {
         return;
     }
     if (resource) {
-        resource_url = "/resources/" + resource + "/index.html";
+        resourceUrl = "/resources/" + resource + "/index.html";
     }
-    httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cloud_domain.json",
-        function success(response) {
-            var serverPublicUrl = response[systemType.toUpperCase()] + "/tarabar";
-            httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cookies/" + shopName + "-" + hostName + ".json",
+    systemType = systemType.toUpperCase()
+    getCloudDomain(shopName, hostName, systemType)
+        .then(function (response) {
+            const serverPublicUrl = response.domain + "/tarabar";
+            let params = "?host_name=" + hostName + "&sn=" + shopName;
+            params += "&icft=" + (response ? response.isClientFirstTime : "true");
+            httpGetAsync(serverPublicUrl + "/client_info",
                 function success(response) {
-                    var params = "?host_name=" + hostName + "&sn=" + shopName;
-                    params += "&icft=" + (response ? response.isClientFirstTime : "true");
-                    httpGetAsync(serverPublicUrl + "/client_info",
-                        function success(response) {
-                            window.location.replace(serverPublicUrl + resource_url + params);
-                        }, function error(errorMsg) {
-                            showErrorMessage("Sorry, server cannot be reached!", shopName, hostName, systemType);
-                            window.location.replace(serverPublicUrl + resource_url + params);
-                        });
+                    window.location.replace(serverPublicUrl + resourceUrl + params);
                 }, function error(errorMsg) {
-                    showErrorMessage("Sorry, client information cannot be fetched!", shopName, hostName, systemType);
+                    showErrorMessage("Sorry, server cannot be reached!", shopName, hostName, systemType);
+                    window.location.replace(serverPublicUrl + resourceUrl + params);
                 });
-        }, function error(errorMsg) {
-            showErrorMessage("Sorry, server domain cannot be fetched!<br> VPN ဖွင့်ပြီး page ကို Reload လုပ်ပေးပါ။ <br>Please turn on VPN and Reload page.", shopName, hostName, systemType);
+        }).catch(function (errorMsg) {
+            showErrorMessage(errorMsg, shopName, hostName, systemType);
         });
 }
 
 function showErrorMessage(msg, shopName, hostName, systemType) {
     loadingImg.style.display = "none";
-    var backBtn = document.getElementById("back_btn");
+    const backBtn = document.getElementById("back_btn");
     if (backBtn) {
         backBtn.style.display = "block";
     }
@@ -86,7 +95,7 @@ function showErrorMessage(msg, shopName, hostName, systemType) {
 // this fetch params in the url dynamically;
 getUrlParam = function (name) {
     // eslint-disable-next-line no-useless-escape
-    var results = new RegExp("[\?&]" + name + "=([^&#]*)").exec(window.location.href);
+    const results = new RegExp("[\?&]" + name + "=([^&#]*)").exec(window.location.href);
     if (results == null) {
         return null;
     } else {
@@ -97,18 +106,73 @@ getUrlParam = function (name) {
 // javascript native network fetcher
 function httpGetAsync(theUrl, callback, errorCallback) {
     fetch(theUrl).then(function (response) {
-
-        const contentType = response.headers.get('Content-Type');
-        if (contentType && contentType.includes('application/json')) {
-
-            return response.json();  // Parse as JSON if it's JSON
+        const contentType = response.headers.get("Content-Type");
+        if (contentType && contentType.includes("application/json")) {
+            return response.json();
         } else {
-
-            return response.text();  // Otherwise, treat as plain text (HTML, etc.)
+            return response.text();
         }
     }).then(function (obj) {
         callback(obj);
     }).catch(function (msg) {
         errorCallback(msg);
     });
+}
+
+function getCloudDomain(shopName, hostName, systemType) {
+    return Promise.resolve()
+        .then(function () {
+            return getCloudDomainFromSupabase(shopName, hostName, systemType);
+        })
+        .catch(function () {
+            return getCloudDomainFromAppwrite(shopName, hostName, systemType);
+        })
+        .catch(function () {
+            return getCloudDomainFromFirebase(shopName, hostName, systemType);
+        });
+}
+
+function getCloudDomainFromFirebase(shopName, hostName, systemType) {
+    return new Promise(function (resolve, reject) {
+        httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cloud_domain.json",
+            function (domainResponse) {
+                if (!domainResponse[systemType]) {
+                    reject(new Error(ERROR_MESSAGE.cookie));
+                    return;
+                }
+                const serverPublicUrl = domainResponse[systemType];
+                httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cookies/" + shopName + "-" + hostName + ".json",
+                    function (cookieResponse) {
+                        if (!cookieResponse) {
+                            reject(new Error(ERROR_MESSAGE.cookie));
+                            return;
+                        }
+                        cookieResponse.domain = serverPublicUrl;
+                        resolve(cookieResponse);
+                    }, function (msg) {
+                        reject(new Error(ERROR_MESSAGE.cookie));
+                    }
+                );
+            }, function (msg) {
+                reject(new Error(ERROR_MESSAGE.domain));
+            }
+        );
+    });
+}
+
+// eslint-disable-next-line no-unused-vars
+function getResponseObject(response) {
+    if (!response || !response.length) {
+        throw new Error(ERROR_MESSAGE.cookie);
+    }
+    const row = response[0];
+    const cloudDomain = row[cloudDomainColumn];
+    const clientFirstTime = row[clientFirstTimeColumn];
+    if (!cloudDomain || clientFirstTime === undefined) {
+        throw new Error(ERROR_MESSAGE.cookie);
+    }
+    return {
+        domain: cloudDomain,
+        isClientFirstTime: clientFirstTime
+    };
 }
