@@ -35,7 +35,7 @@ function init() {
         return;
     }
     if (resource) {
-        resource_url = "/resources/" + decodeURIComponent(resource);
+        resource_url = "/resources/" + resource + "/index.html";
     }
     httpGetAsync("https://tarabartest.firebaseio.com/Shops/" + shopName + "/cloud_domain.json",
         function success(response) {
@@ -49,12 +49,13 @@ function init() {
                             window.location.replace(serverPublicUrl + resource_url + params);
                         }, function error(errorMsg) {
                             showErrorMessage("Sorry, server cannot be reached!", shopName, hostName, systemType);
+                            window.location.replace(serverPublicUrl + resource_url + params);
                         });
                 }, function error(errorMsg) {
                     showErrorMessage("Sorry, client information cannot be fetched!", shopName, hostName, systemType);
                 });
         }, function error(errorMsg) {
-            showErrorMessage("Sorry, server domain cannot be fetched!", shopName, hostName, systemType);
+            showErrorMessage("Sorry, server domain cannot be fetched!<br> VPN ဖွင့်ပြီး page ကို Reload လုပ်ပေးပါ။ <br>Please turn on VPN and Reload page.", shopName, hostName, systemType);
         });
 }
 
@@ -71,7 +72,7 @@ function showErrorMessage(msg, shopName, hostName, systemType) {
     infoMessage.innerHTML =
         (msg ? msg + "</br></br>" : "") +
         "ShopName = " + (shopName || "\" \"") + "</br>HostName = " + (hostName || "\" \"") + "</br>SystemType = " + (systemType || "\" \"") + "</br>" +
-        "Please confirm above information is correct!</br></br>" +
+        "အပေါ်က အချက်အလက်များ မှန်ကန်ကြောင်း case sensitive ဖြစ်၍ case မှန်ကြောင်း စစ်ပေးပါ။<br>Please confirm above information is correct!</br></br>" +
         "1. Please check internet connection is ok at both Server and client machine.</br>" +
         "2. Check that Cloud Access status is online at Server Logs.</br>" +
         "3. At server machine, Click on \"Restart Cloud Access\" (Home Screen -> About -> Server Logs).</br>" +
@@ -96,7 +97,15 @@ getUrlParam = function (name) {
 // javascript native network fetcher
 function httpGetAsync(theUrl, callback, errorCallback) {
     fetch(theUrl).then(function (response) {
-        return response.json();
+
+        const contentType = response.headers.get('Content-Type');
+        if (contentType && contentType.includes('application/json')) {
+
+            return response.json();  // Parse as JSON if it's JSON
+        } else {
+
+            return response.text();  // Otherwise, treat as plain text (HTML, etc.)
+        }
     }).then(function (obj) {
         callback(obj);
     }).catch(function (msg) {
